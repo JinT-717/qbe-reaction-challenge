@@ -1,0 +1,1495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>QBE Reaction Challenge</title>
+
+    <style>
+        :root {
+            --qbe-dark-blue: #001f3f;
+            --qbe-blue: #005eb8;
+            --qbe-light-blue: #00a3e0;
+            --qbe-red: #e31837;
+            --qbe-green: #49a942;
+            --qbe-light-green: #8cc63f;
+            --qbe-white: #ffffff;
+            --qbe-dark-grey: #263746;
+            --shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            overflow-x: hidden;
+            background:
+                radial-gradient(
+                    circle at top,
+                    #0875c1 0%,
+                    var(--qbe-dark-blue) 55%,
+                    #00152b 100%
+                );
+            color: var(--qbe-white);
+            font-family: Arial, Helvetica, sans-serif;
+        }
+
+        button {
+            font-family: inherit;
+        }
+
+        button:focus-visible {
+            outline: 3px solid var(--qbe-light-blue);
+            outline-offset: 3px;
+        }
+
+        .app-container {
+            width: 100%;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .top-header {
+            width: min(900px, 100%);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 20px;
+            margin-bottom: 16px;
+        }
+
+        .brand-area {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .qbe-logo-placeholder {
+            min-width: 64px;
+            height: 64px;
+            width: 64px;
+            border-radius: 8px;
+            background: var(--qbe-dark-blue);
+            object-fit: contain;
+            box-shadow: var(--shadow);
+        }
+
+        .game-title h1 {
+            font-size: clamp(24px, 3vw, 36px);
+            line-height: 1.1;
+        }
+
+        .game-title p {
+            margin-top: 5px;
+            color: #ccecff;
+            font-size: 14px;
+        }
+
+        .player-display {
+            padding: 12px 18px;
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            text-align: right;
+            backdrop-filter: blur(8px);
+        }
+
+        .player-display span {
+            display: block;
+            color: #bde5ff;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .player-display strong {
+            display: block;
+            max-width: 220px;
+            margin-top: 4px;
+            overflow: hidden;
+            color: var(--qbe-white);
+            font-size: 18px;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .game-panel {
+            width: min(760px, 100%);
+            padding: 18px;
+            border: 1px solid rgba(255, 255, 255, 0.16);
+            border-radius: 16px;
+            background: rgba(0, 25, 50, 0.77);
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(10px);
+        }
+
+        .scoreboard {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-bottom: 15px;
+        }
+
+        .score-card {
+            padding: 11px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 9px;
+            background: rgba(255, 255, 255, 0.08);
+            text-align: center;
+        }
+
+        .score-card span {
+            display: block;
+            color: #bde5ff;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .score-card strong {
+            display: block;
+            margin-top: 3px;
+            font-size: 24px;
+        }
+
+        .reaction-box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: min(45vh, 360px);
+            border: 5px solid var(--qbe-light-blue);
+            border-radius: 12px;
+            background: #06182e;
+            box-shadow:
+                0 0 0 3px rgba(255, 255, 255, 0.08),
+                inset 0 0 30px rgba(0, 0, 0, 0.6);
+            cursor: pointer;
+            transition: background-color 0.15s ease;
+            user-select: none;
+        }
+
+        .reaction-box.state-idle {
+            background: #06182e;
+        }
+
+        .reaction-box.state-waiting {
+            background: linear-gradient(160deg, #7a1420, #3a060c);
+        }
+
+        .reaction-box.state-ready {
+            background: linear-gradient(160deg, var(--qbe-light-blue), var(--qbe-blue));
+            animation: readyPulse 0.5s ease-in-out infinite alternate;
+        }
+
+        .reaction-box.state-too-soon {
+            background: linear-gradient(160deg, #ff8da0, #9e0f26);
+        }
+
+        .reaction-box.state-result {
+            background: linear-gradient(160deg, #0875c1, var(--qbe-dark-blue));
+        }
+
+        .reaction-box-logo {
+            display: none;
+            width: 160px;
+            height: 160px;
+            margin-bottom: 14px;
+            object-fit: contain;
+        }
+
+        .reaction-box.state-ready .reaction-box-logo {
+            display: block;
+        }
+
+        @keyframes readyPulse {
+            from {
+                filter: brightness(1);
+            }
+
+            to {
+                filter: brightness(1.18);
+            }
+        }
+
+        .reaction-box-text {
+            font-size: clamp(20px, 4vw, 34px);
+            font-weight: 900;
+            text-align: center;
+            padding: 20px;
+            text-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+        }
+
+        .round-history {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 16px;
+        }
+
+        .round-chip {
+            padding: 6px 12px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        .round-chip.too-soon {
+            color: #ff8da0;
+        }
+
+        .game-controls {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 16px;
+        }
+
+        .status-message {
+            min-height: 24px;
+            margin-top: 12px;
+            color: #ffe796;
+            font-weight: 700;
+            text-align: center;
+        }
+
+        .primary-button,
+        .secondary-button,
+        .danger-button {
+            min-width: 130px;
+            padding: 11px 20px;
+            border: 0;
+            border-radius: 7px;
+            color: var(--qbe-white);
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            transition:
+                transform 0.15s ease,
+                filter 0.15s ease,
+                box-shadow 0.15s ease;
+        }
+
+        .primary-button {
+            background: var(--qbe-blue);
+        }
+
+        .secondary-button {
+            background: var(--qbe-green);
+        }
+
+        .danger-button {
+            background: var(--qbe-red);
+        }
+
+        .primary-button:hover,
+        .secondary-button:hover,
+        .danger-button:hover {
+            filter: brightness(1.12);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.23);
+        }
+
+        .primary-button:active,
+        .secondary-button:active,
+        .danger-button:active {
+            transform: translateY(0);
+        }
+
+        .screen-overlay {
+            position: fixed;
+            z-index: 1000;
+            inset: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            background:
+                radial-gradient(
+                    circle at top,
+                    rgba(0, 94, 184, 0.97),
+                    rgba(0, 18, 42, 0.99)
+                );
+        }
+
+        .screen-overlay.hidden {
+            display: none;
+        }
+
+        .modal-card {
+            width: min(560px, 100%);
+            max-height: 94vh;
+            padding: 34px;
+            overflow-y: auto;
+            border: 1px solid rgba(255, 255, 255, 0.22);
+            border-radius: 20px;
+            background: rgba(0, 30, 62, 0.96);
+            box-shadow: 0 25px 80px rgba(0, 0, 0, 0.5);
+            text-align: center;
+        }
+
+        .large-logo {
+            display: inline-block;
+            width: 110px;
+            height: 110px;
+            margin-bottom: 20px;
+            border-radius: 10px;
+            background: var(--qbe-dark-blue);
+            object-fit: contain;
+        }
+
+        .modal-card h2 {
+            margin-bottom: 10px;
+            font-size: clamp(28px, 5vw, 42px);
+        }
+
+        .modal-subtitle {
+            margin: 0 auto 24px;
+            color: #c5eaff;
+            line-height: 1.6;
+        }
+
+        .name-form {
+            width: min(400px, 100%);
+            margin: 0 auto;
+        }
+
+        .name-form label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 700;
+            text-align: left;
+        }
+
+        .name-form input {
+            width: 100%;
+            padding: 14px;
+            border: 2px solid transparent;
+            border-radius: 7px;
+            background: var(--qbe-white);
+            color: var(--qbe-dark-grey);
+            font-size: 17px;
+            font-family: inherit;
+        }
+
+        .name-form input.error {
+            border-color: var(--qbe-red);
+        }
+
+        .input-error-message {
+            min-height: 21px;
+            margin: 7px 0 10px;
+            color: #ffb3bf;
+            font-size: 13px;
+            text-align: left;
+        }
+
+        .footer-note {
+            margin-top: 22px;
+            color: #86badc;
+            font-size: 12px;
+        }
+
+        .instruction-list {
+            max-width: 440px;
+            margin: 20px auto;
+            padding: 18px 22px;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.08);
+            text-align: left;
+        }
+
+        .instruction-list li {
+            margin: 10px 0;
+            line-height: 1.5;
+        }
+
+        .leaderboard-panel {
+            margin-top: 22px;
+            padding: 18px;
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            border-radius: 14px;
+            background: rgba(255, 255, 255, 0.08);
+            text-align: left;
+        }
+
+        .leaderboard-panel h3 {
+            margin-bottom: 10px;
+            color: #ffe169;
+            font-size: 19px;
+            text-align: center;
+        }
+
+        .leaderboard-list {
+            list-style: none;
+        }
+
+        .leaderboard-clear-button {
+            display: block;
+            margin: 14px auto 0;
+            padding: 8px 18px;
+            font-size: 13px;
+        }
+
+        .leaderboard-entry {
+            display: grid;
+            grid-template-columns: 32px minmax(0, 1fr) 70px;
+            align-items: center;
+            gap: 8px;
+            padding: 9px 8px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .leaderboard-entry.current-player {
+            border-left: 4px solid var(--qbe-light-green);
+            background: rgba(140, 198, 63, 0.14);
+        }
+
+        .leaderboard-rank {
+            color: #9ddcff;
+            font-weight: 700;
+        }
+
+        .leaderboard-name {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .leaderboard-score {
+            color: #ffe169;
+            font-size: 15px;
+            font-weight: 800;
+            text-align: right;
+        }
+
+        .empty-leaderboard {
+            padding: 14px;
+            color: #bde5ff;
+            text-align: center;
+        }
+
+        .congratulations-icon {
+            margin-bottom: 10px;
+            font-size: 60px;
+        }
+
+        .congratulations-score {
+            margin: 18px 0;
+            color: #ffe169;
+            font-size: 30px;
+            font-weight: 900;
+        }
+
+        .modal-actions {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        @media (max-width: 650px) {
+            .top-header {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .brand-area {
+                flex-direction: column;
+            }
+
+            .player-display {
+                text-align: center;
+            }
+
+            .scoreboard {
+                grid-template-columns: 1fr;
+            }
+
+            .modal-card {
+                padding: 24px 18px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <main class="app-container">
+        <header class="top-header">
+            <div class="brand-area">
+                <img
+                    id="headerLogoImg"
+                    class="qbe-logo-placeholder"
+                    alt="QBE logo"
+                >
+
+                <div class="game-title">
+                    <h1>Reaction Challenge</h1>
+                    <p>5 rounds. Wait for blue. Click fast.</p>
+                </div>
+            </div>
+
+            <div class="player-display">
+                <span>Current Player</span>
+                <strong id="currentPlayerName">Not entered</strong>
+            </div>
+        </header>
+
+        <section class="game-panel">
+            <div class="scoreboard">
+                <div class="score-card">
+                    <span>Round</span>
+                    <strong id="roundDisplay">0 / 5</strong>
+                </div>
+
+                <div class="score-card">
+                    <span>Last Time</span>
+                    <strong id="lastTimeDisplay">&mdash;</strong>
+                </div>
+
+                <div class="score-card">
+                    <span>Average</span>
+                    <strong id="averageDisplay">&mdash;</strong>
+                </div>
+            </div>
+
+            <div
+                id="reactionBox"
+                class="reaction-box state-idle"
+            >
+                <img
+                    id="reactionBoxLogo"
+                    class="reaction-box-logo"
+                    alt="QBE logo"
+                >
+
+                <div
+                    id="reactionBoxText"
+                    class="reaction-box-text"
+                >
+                    Enter your name to begin.
+                </div>
+            </div>
+
+            <div
+                id="roundHistory"
+                class="round-history"
+            ></div>
+
+            <div class="game-controls">
+                <button
+                    id="restartButton"
+                    class="secondary-button"
+                    type="button"
+                >
+                    Restart
+                </button>
+
+                <button
+                    id="changePlayerButton"
+                    class="danger-button"
+                    type="button"
+                >
+                    Change Player
+                </button>
+            </div>
+
+            <div
+                id="statusMessage"
+                class="status-message"
+                aria-live="polite"
+            >
+                Enter your name to begin.
+            </div>
+        </section>
+    </main>
+
+    <!-- Splash / name-entry screen -->
+    <div
+        id="splashScreen"
+        class="screen-overlay"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="splashTitle"
+    >
+        <div class="modal-card">
+            <img
+                id="splashLogoImg"
+                class="large-logo"
+                alt="QBE logo"
+            >
+
+            <h2 id="splashTitle">Reaction Challenge</h2>
+
+            <p class="modal-subtitle">
+                Enter your name and test your reflexes across
+                5 rounds. Lower average time wins.
+            </p>
+
+            <!--
+                Intentionally a DIV instead of a FORM so that sandboxed
+                previews (SharePoint / shared drives) can't block a
+                native form submission.
+            -->
+            <div
+                id="nameEntrySection"
+                class="name-form"
+            >
+                <label for="playerName">
+                    Player name
+                </label>
+
+                <input
+                    id="playerName"
+                    name="playerName"
+                    type="text"
+                    maxlength="20"
+                    autocomplete="off"
+                    placeholder="Enter your name"
+                    aria-describedby="nameError"
+                >
+
+                <div
+                    id="nameError"
+                    class="input-error-message"
+                    aria-live="polite"
+                ></div>
+            </div>
+
+            <div class="modal-actions">
+                <button
+                    id="continueButton"
+                    class="secondary-button"
+                    type="button"
+                >
+                    Continue
+                </button>
+            </div>
+
+            <p class="footer-note">
+                Designed for desktop play and large-screen projection.
+            </p>
+        </div>
+    </div>
+
+    <!-- Instruction screen -->
+    <div
+        id="instructionScreen"
+        class="screen-overlay hidden"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="instructionTitle"
+    >
+        <div class="modal-card">
+            <h2 id="instructionTitle">How to Play</h2>
+
+            <p class="modal-subtitle">
+                Welcome,
+                <strong id="instructionPlayerName"></strong>.
+                Review the instructions before starting.
+            </p>
+
+            <ul class="instruction-list">
+                <li>
+                    The box starts red &mdash; wait for it to turn
+                    blue.
+                </li>
+
+                <li>
+                    Click the box as fast as you can once it turns
+                    blue.
+                </li>
+
+                <li>
+                    Clicking too early counts as a false start and
+                    the round restarts.
+                </li>
+
+                <li>
+                    Complete 5 rounds. Your average reaction time
+                    determines your leaderboard rank &mdash; the
+                    lower, the better.
+                </li>
+            </ul>
+
+            <div class="modal-actions">
+                <button
+                    id="backToSplashButton"
+                    class="primary-button"
+                    type="button"
+                >
+                    Back
+                </button>
+
+                <button
+                    id="startGameButton"
+                    class="secondary-button"
+                    type="button"
+                >
+                    Start Challenge
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Results screen -->
+    <div
+        id="resultsScreen"
+        class="screen-overlay hidden"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="resultsTitle"
+    >
+        <div class="modal-card">
+            <div class="congratulations-icon">⚡</div>
+
+            <h2 id="resultsTitle">Challenge Complete!</h2>
+
+            <p class="modal-subtitle">
+                Nice reflexes,
+                <strong id="resultsPlayerName"></strong>.
+            </p>
+
+            <div class="congratulations-score">
+                Average Time:
+                <span id="finalAverage">0</span> ms
+            </div>
+
+            <p id="resultsMessage">
+                Your average has been checked against the leaderboard.
+            </p>
+
+            <div
+                id="leaderboardPanel"
+                class="leaderboard-panel"
+            >
+                <h3 id="leaderboardTitle">
+                    🏆 Top 10 &mdash; Fastest Average
+                </h3>
+
+                <ol
+                    id="leaderboardList"
+                    class="leaderboard-list"
+                ></ol>
+
+                <button
+                    id="clearLeaderboardButton"
+                    class="danger-button leaderboard-clear-button"
+                    type="button"
+                >
+                    Clear Leaderboard
+                </button>
+            </div>
+
+            <div class="modal-actions">
+                <button
+                    id="playAgainButton"
+                    class="secondary-button"
+                    type="button"
+                >
+                    Play Again
+                </button>
+
+                <button
+                    id="returnToSplashButton"
+                    class="primary-button"
+                    type="button"
+                >
+                    Change Player
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        "use strict";
+
+        const QBE_LOGO_DATA_URI =
+            "data:image/png;base64,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";
+
+        /* =========================================================
+           ELEMENT REFERENCES
+           ========================================================= */
+
+        const reactionBox =
+            document.getElementById("reactionBox");
+
+        const reactionBoxText =
+            document.getElementById("reactionBoxText");
+
+        const reactionBoxLogo =
+            document.getElementById("reactionBoxLogo");
+
+        const roundDisplay =
+            document.getElementById("roundDisplay");
+
+        const lastTimeDisplay =
+            document.getElementById("lastTimeDisplay");
+
+        const averageDisplay =
+            document.getElementById("averageDisplay");
+
+        const roundHistory =
+            document.getElementById("roundHistory");
+
+        const currentPlayerNameElement =
+            document.getElementById("currentPlayerName");
+
+        const statusMessage =
+            document.getElementById("statusMessage");
+
+        const restartButton =
+            document.getElementById("restartButton");
+
+        const changePlayerButton =
+            document.getElementById("changePlayerButton");
+
+        const splashScreen =
+            document.getElementById("splashScreen");
+
+        const instructionScreen =
+            document.getElementById("instructionScreen");
+
+        const instructionPlayerName =
+            document.getElementById("instructionPlayerName");
+
+        const startGameButton =
+            document.getElementById("startGameButton");
+
+        const backToSplashButton =
+            document.getElementById("backToSplashButton");
+
+        const resultsScreen =
+            document.getElementById("resultsScreen");
+
+        const playerNameInput =
+            document.getElementById("playerName");
+
+        const nameError =
+            document.getElementById("nameError");
+
+        const continueButton =
+            document.getElementById("continueButton");
+
+        const resultsPlayerName =
+            document.getElementById("resultsPlayerName");
+
+        const finalAverageElement =
+            document.getElementById("finalAverage");
+
+        const resultsMessage =
+            document.getElementById("resultsMessage");
+
+        const leaderboardList =
+            document.getElementById("leaderboardList");
+
+        const playAgainButton =
+            document.getElementById("playAgainButton");
+
+        const returnToSplashButton =
+            document.getElementById("returnToSplashButton");
+
+        const clearLeaderboardButton =
+            document.getElementById("clearLeaderboardButton");
+
+        /* =========================================================
+           GAME CONFIGURATION
+           ========================================================= */
+
+        const TOTAL_ROUNDS = 5;
+        const MIN_WAIT_MS = 1200;
+        const MAX_WAIT_MS = 4000;
+        const TOO_SOON_PAUSE_MS = 900;
+        const RESULT_PAUSE_MS = 1000;
+
+        const leaderboardStorageKey =
+            "qbeReactionChallengeTop10";
+
+        let playerName = "";
+        let gameRunning = false;
+
+        // "idle" | "waiting" | "ready" | "too-soon" | "result"
+        let boxState = "idle";
+
+        let roundIndex = 0;
+        let roundTimes = [];
+
+        let readyStartTimestamp = 0;
+        let waitTimeoutHandle = null;
+        let advanceTimeoutHandle = null;
+
+        /*
+            Fallback leaderboard used if localStorage is blocked by a
+            sandboxed preview. Lasts until the page is closed.
+        */
+        let temporaryLeaderboard = [];
+        let storageEnabled = true;
+
+        /* =========================================================
+           SAFE STORAGE AND LEADERBOARD
+           ========================================================= */
+
+        function checkStorageAvailability() {
+            try {
+                const testKey = "__qbeReactionStorageTest__";
+
+                localStorage.setItem(testKey, "1");
+                localStorage.removeItem(testKey);
+
+                storageEnabled = true;
+            } catch (error) {
+                storageEnabled = false;
+
+                console.warn(
+                    "Browser storage is unavailable. " +
+                    "The leaderboard will use temporary memory.",
+                    error
+                );
+            }
+        }
+
+        function getLeaderboard() {
+            let parsedLeaderboard = [];
+
+            if (!storageEnabled) {
+                parsedLeaderboard = temporaryLeaderboard;
+            } else {
+                try {
+                    const storedLeaderboard =
+                        localStorage.getItem(leaderboardStorageKey);
+
+                    if (!storedLeaderboard) {
+                        return [];
+                    }
+
+                    parsedLeaderboard =
+                        JSON.parse(storedLeaderboard);
+                } catch (error) {
+                    console.error(
+                        "Unable to read leaderboard:",
+                        error
+                    );
+
+                    storageEnabled = false;
+                    parsedLeaderboard = temporaryLeaderboard;
+                }
+            }
+
+            if (!Array.isArray(parsedLeaderboard)) {
+                return [];
+            }
+
+            return parsedLeaderboard
+                .filter(entry => {
+                    return (
+                        entry &&
+                        typeof entry.name === "string" &&
+                        Number.isFinite(entry.averageMs)
+                    );
+                })
+                .sort((a, b) => a.averageMs - b.averageMs)
+                .slice(0, 10);
+        }
+
+        function saveLeaderboard(leaderboard) {
+            temporaryLeaderboard = leaderboard.slice(0, 10);
+
+            if (!storageEnabled) {
+                return;
+            }
+
+            try {
+                localStorage.setItem(
+                    leaderboardStorageKey,
+                    JSON.stringify(leaderboard)
+                );
+            } catch (error) {
+                storageEnabled = false;
+
+                console.error(
+                    "Unable to save leaderboard:",
+                    error
+                );
+            }
+        }
+
+        function addScoreToLeaderboard(name, averageMs) {
+            const leaderboard = getLeaderboard();
+
+            const newEntry = {
+                id:
+                    Date.now().toString() +
+                    "-" +
+                    Math.random().toString(16).slice(2),
+                name: name,
+                averageMs: averageMs
+            };
+
+            leaderboard.push(newEntry);
+
+            leaderboard.sort((a, b) => a.averageMs - b.averageMs);
+
+            const topTen = leaderboard.slice(0, 10);
+
+            const qualified =
+                topTen.some(entry => entry.id === newEntry.id);
+
+            saveLeaderboard(topTen);
+
+            return qualified;
+        }
+
+        function renderLeaderboard() {
+            const leaderboard = getLeaderboard();
+
+            leaderboardList.innerHTML = "";
+
+            if (leaderboard.length === 0) {
+                const emptyItem =
+                    document.createElement("li");
+
+                emptyItem.className = "empty-leaderboard";
+
+                emptyItem.textContent =
+                    "No scores recorded yet.";
+
+                leaderboardList.appendChild(emptyItem);
+                return;
+            }
+
+            leaderboard.forEach((entry, index) => {
+                const listItem =
+                    document.createElement("li");
+
+                const isCurrentPlayer =
+                    playerName &&
+                    entry.name.toLowerCase() ===
+                    playerName.toLowerCase();
+
+                listItem.className = "leaderboard-entry";
+
+                if (isCurrentPlayer) {
+                    listItem.classList.add("current-player");
+                }
+
+                const medal =
+                    index === 0
+                        ? "🥇"
+                        : index === 1
+                            ? "🥈"
+                            : index === 2
+                                ? "🥉"
+                                : String(index + 1);
+
+                const rankSpan =
+                    document.createElement("span");
+
+                rankSpan.className = "leaderboard-rank";
+                rankSpan.textContent = medal;
+
+                const nameSpan =
+                    document.createElement("span");
+
+                nameSpan.className = "leaderboard-name";
+                nameSpan.textContent = entry.name;
+
+                const scoreSpan =
+                    document.createElement("span");
+
+                scoreSpan.className = "leaderboard-score";
+                scoreSpan.textContent =
+                    Math.round(entry.averageMs) + " ms";
+
+                listItem.appendChild(rankSpan);
+                listItem.appendChild(nameSpan);
+                listItem.appendChild(scoreSpan);
+
+                leaderboardList.appendChild(listItem);
+            });
+        }
+
+        /* =========================================================
+           OVERLAY MANAGEMENT
+           ========================================================= */
+
+        function hideAllOverlays() {
+            splashScreen.classList.add("hidden");
+            instructionScreen.classList.add("hidden");
+            resultsScreen.classList.add("hidden");
+        }
+
+        function showSplashScreen() {
+            clearAllRoundTimers();
+
+            gameRunning = false;
+
+            hideAllOverlays();
+            splashScreen.classList.remove("hidden");
+
+            playerNameInput.value = playerName;
+            nameError.textContent = "";
+            playerNameInput.classList.remove("error");
+
+            setTimeout(() => {
+                playerNameInput.focus();
+                playerNameInput.select();
+            }, 100);
+        }
+
+        function showInstructionScreen() {
+            hideAllOverlays();
+
+            instructionPlayerName.textContent = playerName;
+
+            instructionScreen.classList.remove("hidden");
+
+            statusMessage.textContent =
+                "Review the instructions before starting.";
+        }
+
+        function showResultsScreen(qualified, averageMs) {
+            hideAllOverlays();
+
+            resultsPlayerName.textContent = playerName;
+            finalAverageElement.textContent = Math.round(averageMs);
+
+            resultsMessage.textContent = qualified
+                ? "Your average has been added to the Top 10 leaderboard."
+                : "Your average did not reach the Top 10 this time. Try again!";
+
+            renderLeaderboard();
+
+            resultsScreen.classList.remove("hidden");
+        }
+
+        /* =========================================================
+           PLAYER NAME HANDLING
+           ========================================================= */
+
+        function continueWithPlayerName() {
+            const enteredName =
+                playerNameInput.value.trim();
+
+            if (!enteredName) {
+                nameError.textContent =
+                    "Please enter your name before continuing.";
+
+                playerNameInput.classList.add("error");
+                playerNameInput.focus();
+
+                return;
+            }
+
+            playerName = enteredName.substring(0, 20);
+
+            playerNameInput.value = playerName;
+            playerNameInput.classList.remove("error");
+            nameError.textContent = "";
+
+            currentPlayerNameElement.textContent = playerName;
+
+            showInstructionScreen();
+        }
+
+        continueButton.addEventListener(
+            "click",
+            continueWithPlayerName
+        );
+
+        playerNameInput.addEventListener("keydown", event => {
+            if (event.key === "Enter") {
+                /*
+                    Prevent Enter from being interpreted as any form
+                    submission by the hosting environment.
+                */
+                event.preventDefault();
+                event.stopPropagation();
+
+                continueWithPlayerName();
+            }
+        });
+
+        playerNameInput.addEventListener("input", () => {
+            playerNameInput.classList.remove("error");
+            nameError.textContent = "";
+        });
+
+        /* =========================================================
+           GAME LOGIC
+           ========================================================= */
+
+        function setBoxState(newState, text) {
+            boxState = newState;
+
+            reactionBox.className = "reaction-box state-" + newState;
+            reactionBoxText.textContent = text;
+        }
+
+        function clearAllRoundTimers() {
+            if (waitTimeoutHandle !== null) {
+                window.clearTimeout(waitTimeoutHandle);
+                waitTimeoutHandle = null;
+            }
+
+            if (advanceTimeoutHandle !== null) {
+                window.clearTimeout(advanceTimeoutHandle);
+                advanceTimeoutHandle = null;
+            }
+        }
+
+        function updateScoreboard() {
+            roundDisplay.textContent =
+                Math.min(roundIndex, TOTAL_ROUNDS) + " / " + TOTAL_ROUNDS;
+
+            if (roundTimes.length === 0) {
+                lastTimeDisplay.textContent = "—";
+                averageDisplay.textContent = "—";
+                return;
+            }
+
+            const lastTime = roundTimes[roundTimes.length - 1];
+            lastTimeDisplay.textContent = Math.round(lastTime) + " ms";
+
+            const average =
+                roundTimes.reduce((sum, value) => sum + value, 0) /
+                roundTimes.length;
+
+            averageDisplay.textContent = Math.round(average) + " ms";
+        }
+
+        function renderRoundHistory() {
+            roundHistory.innerHTML = "";
+
+            roundTimes.forEach((time, index) => {
+                const chip = document.createElement("span");
+
+                chip.className = "round-chip";
+                chip.textContent =
+                    "R" + (index + 1) + ": " + Math.round(time) + " ms";
+
+                roundHistory.appendChild(chip);
+            });
+        }
+
+        function startGame() {
+            roundIndex = 0;
+            roundTimes = [];
+            gameRunning = true;
+
+            roundHistory.innerHTML = "";
+            updateScoreboard();
+
+            statusMessage.textContent =
+                "Round starting. Wait for blue!";
+
+            startNextRound();
+        }
+
+        function startNextRound() {
+            if (!gameRunning) {
+                return;
+            }
+
+            if (roundIndex >= TOTAL_ROUNDS) {
+                finishGame();
+                return;
+            }
+
+            roundIndex++;
+            updateScoreboard();
+
+            setBoxState("waiting", "Wait for blue...");
+
+            const waitDuration =
+                MIN_WAIT_MS +
+                Math.random() * (MAX_WAIT_MS - MIN_WAIT_MS);
+
+            waitTimeoutHandle = window.setTimeout(() => {
+                readyStartTimestamp = performance.now();
+                setBoxState("ready", "CLICK NOW!");
+            }, waitDuration);
+        }
+
+        function handleBoxClick() {
+            if (!gameRunning) {
+                return;
+            }
+
+            if (boxState === "waiting") {
+                clearAllRoundTimers();
+
+                roundIndex--;
+
+                setBoxState("too-soon", "Too soon! Wait for blue.");
+
+                statusMessage.textContent =
+                    "False start — that round will restart.";
+
+                advanceTimeoutHandle = window.setTimeout(() => {
+                    startNextRound();
+                }, TOO_SOON_PAUSE_MS);
+
+                return;
+            }
+
+            if (boxState === "ready") {
+                const reactionTime =
+                    performance.now() - readyStartTimestamp;
+
+                roundTimes.push(reactionTime);
+
+                updateScoreboard();
+                renderRoundHistory();
+
+                setBoxState(
+                    "result",
+                    Math.round(reactionTime) + " ms"
+                );
+
+                statusMessage.textContent =
+                    roundIndex < TOTAL_ROUNDS
+                        ? "Nice! Get ready for the next round."
+                        : "Last round complete!";
+
+                advanceTimeoutHandle = window.setTimeout(() => {
+                    startNextRound();
+                }, RESULT_PAUSE_MS);
+
+                return;
+            }
+
+            // clicks while idle/result/too-soon transitions are ignored
+        }
+
+        function finishGame() {
+            gameRunning = false;
+            clearAllRoundTimers();
+
+            setBoxState("idle", "Challenge complete!");
+
+            const average =
+                roundTimes.reduce((sum, value) => sum + value, 0) /
+                roundTimes.length;
+
+            statusMessage.textContent =
+                "Average reaction time: " + Math.round(average) + " ms";
+
+            const qualified = addScoreToLeaderboard(
+                playerName,
+                average
+            );
+
+            showResultsScreen(qualified, average);
+        }
+
+        reactionBox.addEventListener("click", handleBoxClick);
+
+        /* =========================================================
+           BUTTON EVENTS
+           ========================================================= */
+
+        startGameButton.addEventListener("click", () => {
+            hideAllOverlays();
+            startGame();
+        });
+
+        backToSplashButton.addEventListener(
+            "click",
+            showSplashScreen
+        );
+
+        restartButton.addEventListener("click", () => {
+            if (!playerName) {
+                showSplashScreen();
+                return;
+            }
+
+            clearAllRoundTimers();
+            hideAllOverlays();
+            startGame();
+        });
+
+        changePlayerButton.addEventListener(
+            "click",
+            showSplashScreen
+        );
+
+        playAgainButton.addEventListener("click", () => {
+            hideAllOverlays();
+            startGame();
+        });
+
+        returnToSplashButton.addEventListener(
+            "click",
+            showSplashScreen
+        );
+
+        clearLeaderboardButton.addEventListener("click", () => {
+            const confirmed = window.confirm(
+                "Clear the leaderboard? This cannot be undone."
+            );
+
+            if (!confirmed) {
+                return;
+            }
+
+            saveLeaderboard([]);
+            renderLeaderboard();
+        });
+
+        /* =========================================================
+           INITIAL PAGE LOAD
+           ========================================================= */
+
+        function initialiseApplication() {
+            checkStorageAvailability();
+
+            const headerLogoImg =
+                document.getElementById("headerLogoImg");
+            const splashLogoImg =
+                document.getElementById("splashLogoImg");
+
+            if (headerLogoImg) {
+                headerLogoImg.src = QBE_LOGO_DATA_URI;
+            }
+
+            if (splashLogoImg) {
+                splashLogoImg.src = QBE_LOGO_DATA_URI;
+            }
+
+            if (reactionBoxLogo) {
+                reactionBoxLogo.src = QBE_LOGO_DATA_URI;
+            }
+
+            currentPlayerNameElement.textContent = "Not entered";
+
+            statusMessage.textContent =
+                "Enter your name to begin.";
+
+            setTimeout(() => {
+                playerNameInput.focus();
+            }, 100);
+        }
+
+        initialiseApplication();
+    </script>
+</body>
+</html>
